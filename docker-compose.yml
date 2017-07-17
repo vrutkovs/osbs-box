@@ -13,6 +13,7 @@ services:
           context: shared-data
           args:
             UPDATES_TESTING: 1
+            REGISTRY_IP: 172.17.0.1
         hostname: shared-data
         volumes:
             - osbsbox-osbs:/opt/osbs
@@ -62,6 +63,7 @@ services:
           context: client
           args:
             UPDATES_TESTING: 1
+            REGISTRY_IP: 172.17.0.1
         hostname: koji-client
         volumes_from:
             - shared-data
@@ -73,8 +75,5 @@ services:
       environment:
         REGISTRY_HTTP_TLS_CERTIFICATE: /certs/domain.crt
         REGISTRY_HTTP_TLS_KEY: /certs/domain.key
-        REGISTRY_AUTH: htpasswd
-        REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
-        REGISTRY_AUTH_HTPASSWD_REALM: Registry Realm
       volumes_from:
         - shared-data

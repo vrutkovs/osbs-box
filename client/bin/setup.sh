@@ -49,7 +49,7 @@ EOF
 
 oc adm policy add-role-to-user osbs-custom-build osbs -z builder --role-namespace osbs
 
-oc secrets new-dockercfg v2-registry-dockercfg --docker-server=172.17.0.1:5000 --docker-username=osbs --docker-password=craycray --docker-email=test@test.com
+oc secrets new-dockercfg v2-registry-dockercfg --docker-server=${REGISTRY_IP}:5000 --docker-username=osbs --docker-password=craycray --docker-email=test@test.com
 
 oc new-project worker
 oc adm policy add-role-to-user edit -z builder
@@ -77,7 +77,7 @@ EOF
 
 oc adm policy add-role-to-user osbs-custom-build osbs -z builder --role-namespace worker
 
-oc secrets new-dockercfg v2-registry-dockercfg --docker-server=172.17.0.1:5000 --docker-username=osbs --docker-password=craycray --docker-email=test@test.com
+oc secrets new-dockercfg v2-registry-dockercfg --docker-server=${REGISTRY_IP}:5000 --docker-username=osbs --docker-password=craycray --docker-email=test@test.com
 
 token=$(oc whoami -t)
 
@@ -85,6 +85,7 @@ cp /configs/reactor-config-secret.yml /tmp/config.yaml
 cp /configs/client-config-secret.conf /tmp/osbs.conf
 sed -i "s/OSBS_TOKEN/${token}/" /tmp/osbs.conf
 sed -i "s/KOJI_HUB_IP/${WORKSTATION_IP}/" /tmp/osbs.conf
+sed -i "s/REGISTRY_IP/${REGISTRY_IP}/" /tmp/osbs.conf
 
 oc project osbs
 oc create secret generic client-config-secret --from-file=/tmp/osbs.conf

@@ -18,7 +18,7 @@ echo 01 > serial
 
 # CA
 conf=confs/ca.cnf
-cp ssl.cnf $conf
+cat /opt/local/pki/koji/ssl.cnf | sed "s/email\:move/IP:172.21.0.1,email:move/"> $conf
 
 openssl genrsa -out private/koji_ca_cert.key 2048
 openssl req -config $conf -new -x509 \
@@ -43,10 +43,10 @@ mkdir -p /root/.koji
 ln -s /opt/local/koji-clients/kojiadmin/config /root/.koji/config
 
 # Generate certificates and set password for registry
-cat /opt/local/pki/koji/ssl.cnf | sed "s/email\:move/IP:172.17.0.1,email:move/"> ssl.cnf
+cat /opt/local/pki/koji/ssl.cnf | sed "s/email\:move/IP.1:${REGISTRY_IP},email:move/"> ssl.cnf
 mkdir /opt/local/certs
-openssl req -config ssl.cnf \
-    -subj "/C=US/ST=Drunken/L=Bed/O=IT/CN=172.17.0.1" \
+openssl req -config ssl.cnf\
+    -subj "/C=US/ST=Drunken/L=Bed/O=IT/CN=${REGISTRY_IP}" \
     -newkey rsa:4096 -nodes -sha256 -keyout /opt/local/certs/domain.key \
     -x509 -days 365 -out /opt/local/certs/domain.crt \
     -extensions v3_ca
