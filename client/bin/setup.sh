@@ -1,7 +1,7 @@
 #!/bin/bash
 set -xeuo pipefail
 
-# Koji CLI in RHEL7 has a nasty bug - it attempts to verify that user is 
+# Koji CLI in RHEL7 has a nasty bug - it attempts to verify that user is
 # package owner before auth procedure
 # Lets quickly patch it
 
@@ -57,7 +57,7 @@ EOF
 
 oc adm policy add-role-to-user osbs-custom-build osbs -z builder --role-namespace osbs
 
-oc secrets new-dockercfg v2-registry-dockercfg --docker-server=172.17.0.1:5000 --docker-username=osbs --docker-password=craycray --docker-email=test@test.com
+oc secrets new-dockercfg v2-registry-dockercfg --docker-server=10.36.112.21:5000 --docker-username=osbs --docker-password=craycray --docker-email=test@test.com
 
 oc new-project worker
 oc adm policy add-role-to-user edit -z builder
@@ -85,7 +85,7 @@ EOF
 
 oc adm policy add-role-to-user osbs-custom-build osbs -z builder --role-namespace worker
 
-oc secrets new-dockercfg v2-registry-dockercfg --docker-server=172.17.0.1:5000 --docker-username=osbs --docker-password=craycray --docker-email=test@test.com
+oc secrets new-dockercfg v2-registry-dockercfg --docker-server=10.36.112.21:5000 --docker-username=osbs --docker-password=craycray --docker-email=test@test.com
 
 token=$(oc whoami -t)
 
@@ -97,3 +97,7 @@ sed -i "s/KOJI_HUB_IP/${WORKSTATION_IP}/" /tmp/osbs.conf
 oc project osbs
 oc create secret generic client-config-secret --from-file=/tmp/osbs.conf
 oc create secret generic reactor-config-secret --from-file=/tmp/config.yaml
+oc create -f /configs/pulp-secret.yml
+
+oc project worker
+oc create -f /configs/pulp-secret-worker.yml
