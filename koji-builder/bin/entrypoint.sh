@@ -9,7 +9,7 @@ ln -f -s /opt/koji-clients/kojiadmin/config /root/.koji/config
 set +xe
 echo "Waiting for koji-hub to start..."
 while true; do
-    koji hello && break
+  koji hello && break
 	sleep 5
 done
 set -xe
