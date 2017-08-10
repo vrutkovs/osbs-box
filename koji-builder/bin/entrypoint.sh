@@ -12,7 +12,7 @@ while true; do
   koji hello && break
 	sleep 5
 done
-set -xe
+set -eux
 
 if [ ! -e "/opt/osbs/builder-init" ]
 then
