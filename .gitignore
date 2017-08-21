@@ -4,5 +4,6 @@ client/Dockerfile
 hub/Dockerfile
 koji-db/Dockerfile
 koji-builder/Dockerfile
+odcs/Dockerfile
 pdc/Dockerfile
 shared-data/Dockerfile

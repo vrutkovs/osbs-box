@@ -1,0 +1,81 @@
+FROM osbs-box:fedora
+
+# Ordering here is:
+#  General
+#  Build environment for pyldap
+#  Dependencies of pungi
+#  Dependencies of odcs
+RUN dnf -y --refresh install \
+    iproute \
+        mod_wsgi \
+        python-setuptools \
+        postgresql \
+    python2-devel \
+        openldap-devel \
+        gcc \
+        redhat-rpm-config \
+    createrepo \
+        createrepo_c \
+        cvs \
+        genisoimage \
+        gettext \
+        git \
+        isomd5sum \
+        kobo \
+        kobo-rpmlib \
+        koji \
+        libselinux-python \
+        python-kickstart \
+        python2-jsonschema \
+        python-enum34 \
+        python-lockfile \
+        python2-lxml \
+        python2-modulemd \
+        python2-pdc-client \
+        python-productmd \
+        syslinux \
+        yum-utils \
+    m2crypto \
+        python2-funcsigs \
+        python-httplib2 \
+        python-m2ext \
+        python2-mock \
+        python-munch \
+        python2-pdc-client \
+        python2-pyOpenSSL \
+        python-fedora \
+        python2-six \
+        python2-sqlalchemy \
+        python2-futures \
+        python2-flask \
+        python2-flask-migrate \
+        python2-flask-sqlalchemy \
+        python-flask-script \
+        python-flask-login \
+        python2-requests \
+        python2-jinja2 \
+        python2-psycopg2 \
+  && dnf clean all
+
+# Not packaged for python2
+RUN pip install pyldap
+
+RUN git clone https://pagure.io/pungi.git /tmp/pungi
+RUN cd /tmp/pungi && python setup.py install
+
+RUN git clone https://pagure.io/odcs.git /tmp/odcs
+RUN cd /tmp/odcs && python setup.py install
+RUN mkdir -p /etc/odcs
+RUN cp /tmp/odcs/server/conf/config.py /etc/odcs
+
+ADD config_docker.py /etc/odcs/config_docker.py
+ADD odcs.wsgi /etc/odcs/odcs.wsgi
+ADD start-odcs-frontend /usr/bin/start-odcs-frontend
+ADD start-odcs-backend /usr/bin/start-odcs-backend
+ADD odcs.conf /etc/httpd/conf.d
+
+RUN echo 'koji-db:5432:*:koji:mypassword' > /etc/odcs/pgpass && chmod 0400 /etc/odcs/pgpass && chown apache:apache /etc/odcs/pgpass
+ENV PGPASSFILE /etc/odcs/pgpass
+
+WORKDIR /tmp/odcs
+CMD ["start-odcs-frontend"]

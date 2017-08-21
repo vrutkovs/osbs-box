@@ -64,6 +64,22 @@ services:
         volumes_from:
             - shared-data
 
+    odcs-frontend:
+        build:
+            context: odcs
+        command: start-odcs-frontend
+        ports:
+            - 5005:80
+        volumes_from:
+            - shared-data
+
+    odcs-backend:
+        build:
+            context: odcs
+        command: start-odcs-backend
+        volumes_from:
+            - shared-data
+
     pdc:
         build:
             context: pdc

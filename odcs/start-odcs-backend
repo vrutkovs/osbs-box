@@ -1,0 +1,18 @@
+#!/bin/bash
+
+WORKSTATION_IP=$(/sbin/ip route | awk '/default/ { print $3 }')
+sed -i "s@TARGET_DIR_URL =.*@TARGET_DIR_URL = 'http://${WORKSTATION_IP}:5005/composes'@" /etc/odcs/config_docker.py
+
+mkdir -p $HOME/.koji
+ln -f -s /opt/koji-clients/kojiadmin/config $HOME/.koji/config
+
+export ODCS_CONFIG_FILE=/etc/odcs/config_docker.py
+export ODCS_CONFIG_SECTION=DockerConfiguration
+
+until psql -h koji-db -U osbs --list | grep odcs > /dev/null 2>&1 ; do
+    echo 1>&2 "Waiting for database to become available"
+    sleep 1
+done
+odcs-upgradedb
+
+exec odcs-backend

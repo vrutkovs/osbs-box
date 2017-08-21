@@ -1,0 +1,9 @@
+#!/bin/bash
+
+WORKSTATION_IP=$(/sbin/ip route | awk '/default/ { print $3 }')
+sed -i "s@TARGET_DIR_URL =.*@TARGET_DIR_URL = 'http://${WORKSTATION_IP}:5005/composes'@" /etc/odcs/config_docker.py
+
+export ODCS_CONFIG_FILE=/etc/odcs/config_docker.py
+export ODCS_CONFIG_SECTION=DockerConfiguration
+
+exec httpd -DNO_DETACH -DFOREGROUND
