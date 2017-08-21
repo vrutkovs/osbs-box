@@ -113,6 +113,8 @@ def up(args):
     output = _run(cmd)
     match = re.search(r'Using (\d*.\d*.\d*.\d*) as the server IP', output)
     if not match:
+        match = re.search(r'https://(\d*.\d*.\d*.\d*):8443', output)
+    if not match:
         raise RuntimeError("Failed to find openshift IP in output:\n%s" % output)
 
     openshift_ip = match.group(1)
