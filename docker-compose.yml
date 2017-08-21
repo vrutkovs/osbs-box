@@ -5,6 +5,7 @@ volumes:
     osbsbox-koji-config:
     osbsbox-koji-certs:
     osbsbox-registry-auth:
+    osbsbox-koji-db:
 
 services:
 
@@ -26,6 +27,8 @@ services:
             - POSTGRES_DB=koji
             - POSTGRES_USER=koji
             - POSTGRES_PASSWORD=mypassword
+        volumes:
+            - osbsbox-koji-db:/var/lib/postgresql/data
 
     koji-hub:
         build:
