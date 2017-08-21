@@ -87,7 +87,7 @@ services:
             - 5004:80
 
     registry:
-      image: registry:2
+      image: docker.io/owtaylor/registry-oci:latest
       ports:
         - 5000:5000
       environment:
