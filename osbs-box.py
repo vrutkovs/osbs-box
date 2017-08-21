@@ -7,8 +7,8 @@ from time import sleep
 from textwrap import dedent
 
 BASEIMAGE = 'osbs-box'
-DIRECTORIES = ['base', 'client', 'koji-db', 'hub', 'koji-builder', 'shared-data']
-SERVICES = ['shared-data', 'koji-db', 'koji-hub', 'koji-builder', 'koji-client']
+DIRECTORIES = ['base', 'client', 'koji-db', 'hub', 'koji-builder', 'pdc', 'shared-data']
+SERVICES = ['shared-data', 'koji-db', 'koji-hub', 'koji-builder', 'koji-client', 'pdc']
 dir_path = os.path.basename(os.path.dirname(os.path.realpath(__file__))).replace('-', '')
 
 

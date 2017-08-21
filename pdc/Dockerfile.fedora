@@ -1,0 +1,36 @@
+FROM osbs-box:fedora
+
+RUN dnf -y --refresh install \
+    findutils \
+    git \
+    httpd \
+    mod_wsgi \
+    postgresql \
+    productmd \
+    python2-koji \
+    python-ldap \
+    python-markdown \
+    python-mock \
+    python-setuptools \
+    python-psycopg2 \
+  && dnf clean all
+
+RUN git clone -b v1.3.0 https://github.com/patternfly/patternfly.git /tmp/patternfly1
+RUN cd /tmp/patternfly1 && make install PREFIX=/usr
+
+RUN git clone https://github.com/product-definition-center/product-definition-center.git /tmp/pdc
+RUN cd /tmp/pdc && pip install .
+RUN mkdir /etc/pdc
+
+RUN htpasswd -bc /etc/pdc/users admin mypassword
+ADD pdc-httpd.conf /etc/httpd/conf.d/pdc.conf
+
+RUN echo 'koji-db:5432:*:koji:mypassword' > /etc/pdc/pgpass && chmod 0400 /etc/pdc/pgpass && chown apache:apache /etc/pdc/pgpass
+ENV PGPASSFILE /etc/pdc/pgpass
+
+ADD settings_local.py /usr/lib/python2.7/site-packages/pdc/settings_local.py
+
+RUN django-admin collectstatic --settings=pdc.settings --noinput
+ADD start-pdc.sh /usr/bin
+
+CMD ["start-pdc.sh"]

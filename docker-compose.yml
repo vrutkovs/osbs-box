@@ -64,6 +64,12 @@ services:
         volumes_from:
             - shared-data
 
+    pdc:
+        build:
+            context: pdc
+        ports:
+            - 5004:80
+
     registry:
       image: registry:2
       ports:
