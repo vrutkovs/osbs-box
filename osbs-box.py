@@ -2,6 +2,7 @@
 import argparse
 import re
 import os
+import shutil
 from subprocess import CalledProcessError, Popen, PIPE, STDOUT
 from time import sleep
 from textwrap import dedent
@@ -9,7 +10,9 @@ from textwrap import dedent
 BASEIMAGE = 'osbs-box'
 DIRECTORIES = ['base', 'client', 'koji-db', 'hub', 'koji-builder', 'odcs', 'pdc', 'shared-data']
 SERVICES = ['shared-data', 'koji-db', 'koji-hub', 'koji-builder', 'koji-client', 'odcs-backend', 'odcs-frontend', 'pdc']
-dir_path = os.path.basename(os.path.dirname(os.path.realpath(__file__))).replace('-', '')
+top_path = os.path.dirname(os.path.abspath(__file__))
+dir_path = os.path.basename(top_path).replace('-', '')
+oc_host_data_dir = os.path.join(top_path, 'ocdata')
 
 
 def _run(cmd, ignore_exitcode=False, show_print=True):
@@ -92,7 +95,7 @@ def down(args, delete_volumes=False):
 
 def cleanup(args):
     down(args, delete_volumes=True)
-
+    _run(['sudo', 'rm', '-rf', oc_host_data_dir])
 
 def up(args):
     if not args.no_cleanup:
@@ -102,7 +105,11 @@ def up(args):
     # Start a cluster
     cmd = ['oc', 'cluster', 'up',
            '--version', 'v1.5.1',
-           '--image', 'openshift/origin']
+           '--image', 'openshift/origin',
+           '--host-data-dir', oc_host_data_dir,
+        ]
+    if args.no_cleanup:
+        cmd += ['--use-existing-config']
     output = _run(cmd)
     match = re.search(r'Using (\d*.\d*.\d*.\d*) as the server IP', output)
     if not match:
