@@ -61,6 +61,7 @@ oc secrets new-dockercfg v2-registry-dockercfg --docker-server=172.17.0.1:5000 -
 
 oc new-project worker
 oc adm policy add-role-to-user edit -z builder
+oc adm policy add-role-to-user edit system:serviceaccount:osbs:builder
 
 oc secret new kojisecret \
     serverca=/opt/koji-clients/kojiadmin/serverca.crt \
@@ -83,7 +84,7 @@ rules:
   - builds/custom
 EOF
 
-oc adm policy add-role-to-user osbs-custom-build osbs -z builder --role-namespace worker
+oc adm policy add-role-to-user osbs-custom-build osbs system:serviceaccount:osbs:builder -z builder --role-namespace worker
 
 oc secrets new-dockercfg v2-registry-dockercfg --docker-server=172.17.0.1:5000 --docker-username=osbs --docker-password=craycray --docker-email=test@test.com
 
