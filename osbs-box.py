@@ -104,7 +104,6 @@ def up(args):
 
     # Start a cluster
     cmd = ['oc', 'cluster', 'up',
-           '--version', 'v1.5.1',
            '--image', 'openshift/origin',
            '--host-data-dir', oc_host_data_dir,
         ]
