@@ -1,0 +1,291 @@
+#!/usr/bin/python3
+
+import argparse
+import json
+import koji
+from modulemd import ModuleMetadata
+import os
+import pycurl
+import re
+import shutil
+import subprocess
+import sys
+import time
+
+def verify_digest(rpm, relpath):
+    try:
+        output = subprocess.check_output(['rpm', '-Kv', relpath],
+                                         stderr=subprocess.STDOUT,
+                                         universal_newlines=True)
+    except subprocess.CalledProcessError:
+        return False
+
+    md5_digest = None
+    for line in output.split('\n'):
+        m = re.search(r'MD5 digest.*\(([0-9a-f]+)\)', line)
+        if m:
+            md5_digest = m.group(1)
+    return md5_digest == rpm['payloadhash']
+
+class Builder(object):
+    def __init__(self, tag, config, git_url, git_branch, workdir):
+        self.tag = tag
+        self.config = config
+        self.git_url = git_url
+        self.git_branch = git_branch
+        self.workdir = workdir
+
+        self.name = git_url.split('/')[-1]
+        if self.name.endswith('.git'):
+            self.name = self.name[:-4]
+
+        self.moduledir = os.path.join(self.workdir, self.name)
+        if not os.path.exists(self.moduledir):
+            os.makedirs(self.moduledir)
+
+        options = koji.read_config('koji', user_config=self.config)
+        self.local_koji = koji.ClientSession(options['server'], options)
+        self.local_koji.ssl_login()
+
+        tag_packages = self.local_koji.listPackages(tagID=self.tag)
+        self.tag_packages = set(p['package_name'] for p in tag_packages)
+
+        self.remote_koji = koji.ClientSession('https://koji.fedoraproject.org/kojihub', {})
+
+        self.artifacts = []
+        self.subpackages = set()
+
+    def _koji(self, args):
+        cmd = ['koji']
+        if self.config:
+            cmd += ['-c', self.config]
+        cmd += args
+        subprocess.check_call(cmd)
+
+    def checkout(self):
+        checkoutdir = os.path.join(self.moduledir, 'checkout')
+        if os.path.exists(checkoutdir):
+            shutil.rmtree(checkoutdir)
+
+        subprocess.check_call(['git', 'clone', '-b', self.git_branch,
+                               self.git_url, 'checkout'], cwd=self.moduledir)
+
+        commit_timestamp = subprocess.check_output(['git', 'log',
+                                                    '--pretty=format:%ct', '-1'],
+                                                   cwd=checkoutdir).strip()
+        self.module_version = int(time.strftime('%Y%m%d%H%M%S',
+                                                time.gmtime(int(commit_timestamp))))
+
+        self.mmd = ModuleMetadata()
+        self.mmd.load(os.path.join(checkoutdir, self.name + '.yaml'))
+
+        fake_module_md = self.mmd.xmd.get('fake-module', {})
+        self.to_import = set(fake_module_md.get('import', []))
+
+    def add_artifact(self, rpm, srpm):
+        epoch = rpm['epoch'] if rpm['epoch'] is not None else 0
+        artifact = {
+            'name': rpm['name'],
+            'epoch': epoch,
+            'version': rpm['version'],
+            'release': rpm['release'],
+            'arch': rpm['arch'],
+            'srpm_name': srpm['name']
+        }
+
+        if rpm['arch'] != 'src':
+            srpm_epoch = srpm['epoch'] if srpm['epoch'] is not None else 0
+            artifact['srpm_nevra'] = srpm['name'] + "-" + str(srpm_epoch) + ":" + srpm['version'] + "-" + srpm['release'] + ".src"
+
+        self.artifacts.append(artifact);
+
+    def download_rpm(self, package_name, buildinfo, rpm, srpm):
+        pathinfo = koji.PathInfo(topdir='https://kojipkgs.fedoraproject.org/')
+
+        self.subpackages.add(rpm['name'])
+
+        url = pathinfo.build(buildinfo) + '/' + pathinfo.rpm(rpm)
+        filename = os.path.basename(pathinfo.rpm(rpm))
+        dirpath = os.path.join(self.workdir, 'rpms', rpm['arch'])
+
+        if not os.path.exists(dirpath):
+            os.makedirs(dirpath)
+
+        download_path = os.path.join(dirpath, filename)
+
+        self.add_artifact(rpm, srpm)
+
+        if os.path.exists(download_path):
+            if verify_digest(rpm, download_path):
+                print("{}: skipping, already downloaded".format(filename))
+                return download_path
+            else:
+                print("{}: verification failed, redownloading ... ".format(filename),
+                      end='')
+        else:
+            print("{} ... ".format(filename),
+                  end='')
+        sys.stdout.flush()
+        c = pycurl.Curl()
+        c.setopt(c.URL, url)
+        c.setopt(c.WRITEDATA, open(download_path, 'wb'))
+        c.perform()
+        c.close()
+        print('done')
+
+        if not verify_digest(rpm, download_path):
+            raise RuntimeError("Download of {} failed verification".format(filename))
+
+        return download_path
+
+    def add_package(self, package_name):
+        if not package_name in self.tag_packages:
+            self.local_koji.packageListAdd(self.tag, package_name, 'kojiadmin')
+            self.tag_packages.add(package_name)
+
+    def tag_build(self, name, nvr):
+        tagged_builds = self.local_koji.listTagged(self.tag, package=name)
+        build_already_tagged = any(b['nvr'] == nvr for b in tagged_builds)
+        if build_already_tagged:
+            print("{}: already tagged into {}".format(nvr, self.tag))
+        else:
+            print("{}: tagging into {}... ".format(nvr, self.tag), end="")
+            sys.stdout.flush()
+            self.local_koji.tagBuild(self.tag, nvr)
+            print("done")
+
+    def import_rpms(self, package_name):
+        print("Fetching information for {} ... ".format(package_name), end='')
+        sys.stdout.flush()
+        builds = self.remote_koji.listTagged('f26-build', latest=True, package=package_name, inherit=True)
+        info = builds[0]
+        rpms = self.remote_koji.listRPMs(buildID=info['id'], arches=['x86_64', 'noarch', 'src'])
+        print("done")
+
+        downloaded = []
+        srpm = [r for r in rpms if r['arch'] == 'src'][0]
+        for rpm in sorted(rpms, key=lambda x: (x['nvr'], x['arch'])):
+            downloaded.append(self.download_rpm(self, info, rpm, srpm))
+
+        self._koji(['import'] + downloaded)
+
+        self.add_package(package_name)
+        self.tag_build(package_name, info['nvr'])
+
+    def import_builds(self):
+        for component in sorted(self.to_import):
+            self.import_rpms(component)
+
+    def find_build_for_url(self, url):
+        tasks = self.local_koji.listTasks(opts={'method': 'build',
+                                                'state': [koji.TASK_STATES['CLOSED']]})
+        for task in tasks:
+            params = self.local_koji.getTaskRequest(task['id'])
+            if params[0] == url:
+                return self.local_koji.listBuilds(taskID=task['id'])[0]
+
+        return None
+
+    def build_package(self, name, ref):
+        url = 'git://pkgs.fedoraproject.org/rpms/' + name + '#' + ref
+        self.add_package(name)
+        build = self.find_build_for_url(url)
+        if build:
+            print("Found existing build for", url)
+            self.tag_build(build['package_name'], build['nvr'])
+            build_id = build['build_id']
+        else:
+            self._koji(['build', self.tag, url])
+            taggedBuild = self.local_koji.listTagged(self.tag, latest=True, package=name)[0]
+            build_id = taggedBuild['id']
+
+        rpms = self.local_koji.listRPMs(buildID=build_id, arches=['x86_64', 'noarch', 'src'])
+        srpm = [r for r in rpms if r['arch'] == 'src'[0]
+        for rpm in rpms:
+            self.subpackages.add(rpm['name'])
+            self.add_artifact(rpm, srpm)
+
+    def build(self):
+        for name, info in self.mmd.components.rpms.items():
+            if name in self.to_import:
+                continue
+            self.build_package(name, info.ref)
+
+    def output_json(self):
+        mmd = ModuleMetadata()
+        mmd.loads(self.mmd.dumps())
+        try:
+            del mmd.xmd['fake-module']
+        except KeyError:
+            pass
+
+        mmd.name = self.name
+        mmd.stream = 'f26'
+        mmd.version = self.module_version
+
+        if 'runtime' in mmd.profiles:
+            profile = mmd.profiles['runtime']
+            for name in self.subpackages:
+                if not name in profile.rpms:
+                    mmd.filter.rpms.add(name)
+
+        output_yaml = os.path.join(self.moduledir, self.name + '.yaml')
+        mmd.dump(output_yaml)
+
+        runtime_deps = []
+        for dep, stream in mmd.requires.items():
+            runtime_deps.append({
+                "dependency": dep,
+                "stream": stream
+            })
+
+        build_deps = []
+        for dep, stream in mmd.buildrequires.items():
+            build_deps.append({
+                "dependency": dep,
+                "stream": stream
+            })
+
+        pdc_json = {
+            'active': True,
+            "build_deps": build_deps,
+            "koji_tag": self.tag,
+            "modulemd": mmd.dumps(),
+            "rpms": self.artifacts,
+            "runtime_deps": runtime_deps,
+            "variant_id": mmd.name,
+            "variant_name": mmd.name,
+            "variant_release": mmd.version,
+            "variant_type": "module",
+            "variant_uid": mmd.name + '-' + mmd.stream + '-' + str(mmd.version),
+            "variant_version": mmd.stream
+        }
+
+        output_json = os.path.join(self.moduledir, self.name + '.json')
+        with open(output_json, 'w') as f:
+            json.dump(pdc_json, f,
+                      sort_keys=True,
+                      indent=4, separators=(',', ': '))
+
+    def run(self):
+        builder.checkout()
+        builder.import_builds()
+        builder.build()
+        builder.output_json()
+
+parser = argparse.ArgumentParser(description='Create a fake module build in koji.')
+parser.add_argument('tag', metavar='TAG',
+                    help='Koji tag to import and build packages in')
+parser.add_argument('--config', '-c', required=False,
+                    help='Config file for local koji')
+parser.add_argument('--git', '-g', required=True,
+                    help='git URL of repository')
+parser.add_argument('--branch', '-b', required=True,
+                    help='branch of git URL of repository')
+parser.add_argument('--workdir', '-w', required=True,
+                    help='directory to create files in')
+
+args = parser.parse_args()
+builder = Builder(tag=args.tag, config=args.config, git_url=args.git, git_branch=args.branch, workdir=args.workdir)
+builder.run()
+
