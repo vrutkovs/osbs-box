@@ -171,8 +171,12 @@ def up(args):
                                   "exec /usr/sbin/init")
     print("osbs-box is up")
 
+    cmd = ["docker", "inspect", "--type=network", "osbsbox_default",
+           "--format", "'{{ (index .IPAM.Config 0).Gateway }}'"]
+    workstation_ip = _run(cmd, show_print=False).strip()
+
     print("make sure registry certificate from ./certs is copied to "
-          "/etc/docker/certs.d/172.17.0.1:5000/ca.crt")
+          "/etc/docker/certs.d/{}:5000/ca.crt".format(workstation_ip))
 
 
 def status(args):

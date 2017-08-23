@@ -15,6 +15,7 @@ RUN yum install -y \
         hostname \
         httpd \
         httpd-tools \
+        iproute \
     && yum clean all
 
 ADD opt/ /opt/
