@@ -80,7 +80,6 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME':  'pdc',
         'USER': 'koji',
-        'PASSWORD': 'mypassword',
         'HOST': 'koji-db',
         'PORT': '5432',
     }
