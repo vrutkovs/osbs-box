@@ -35,6 +35,48 @@ docker exec -it osbsbox_koji-client_1 koji-containerbuild container-build candid
     --git-branch osbs-box-demo
 ```
 
+
+## Building Flatpaks
+
+The `create-module-data.sh` script imports RPMs from Fedora 26 and
+rebuilds other RPMs locally in order to create two modules:
+to create two modules - a `minimal-runtime` module with
+glibc + deps, and a `banner` module with the `banner` command line
+program.
+
+You can then build Flatpaks as OCI images out of the modules and use
+the `import-koji-flatpak` and `flatpak-test-run` scripts to test
+that the resulting Flatpak runtime and application work.
+
+```
+$ docker-compose exec koji-client bash
+
+# create-module-data.sh
+[ output ]
+# osbs build -u john.doe --flatpak -g git://github.com/owtaylor/minimal-runtime -b master -m minimal-runtime:f26
+[ output ]
+# osbs build -u john.doe --flatpak -g git://github.com/owtaylor/banner -b master -m banner:f26
+[ output ]
+
+# ostree init --mode=archive-z2 --repo=localrepo
+# import-koji-flatpak localrepo minimal-runtime f26
+Importing runtime/org.fedoraproject.MinimalPlatform/x86_64/26 (39bc9e25de6243d4a8f00923687db7291627e3267ad562b3d74177a99d08b69e)
+# import-koji-flatpak localrepo banner f26
+Importing app/com.cedar_solutions.Banner/x86_64/master (1f30fb859c09b77a879f6f4597b300a52d041de9c891470b88eee888d49beec4)
+# flatpak-test-run localrepo org.fedoraproject.MinimalPlatform com.cedar_solutions.Banner "Hello!"
+Installing: org.fedoraproject.MinimalPlatform/x86_64/26 from temp
+Installing: com.cedar_solutions.Banner/x86_64/master from temp
+
+#     #  #######  #        #        #######   ###
+#     #  #        #        #        #     #   ###
+#     #  #        #        #        #     #   ###
+#######  #####    #        #        #     #    #
+#     #  #        #        #        #     #
+#     #  #        #        #        #     #   ###
+#     #  #######  #######  #######  #######   ###
+```
+
+
 ## Containers
 
 ### Koji Hub

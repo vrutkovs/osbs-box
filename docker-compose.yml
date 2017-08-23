@@ -60,6 +60,10 @@ services:
     koji-client:
         build:
           context: client
+        # only needed so that 'flatpak' will be able to create a nested
+        # namespace for the flatpak-test-run script to work inside the
+        # koji-client environment.
+        privileged: true
         hostname: koji-client
         volumes_from:
             - shared-data

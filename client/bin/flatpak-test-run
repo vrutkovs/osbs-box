@@ -1,0 +1,27 @@
+#!/bin/bash
+
+if [ $# -lt 3 ] ; then
+    echo 1>&2 "Usage: flatpak-test-run REPO RUNTIME APP [args..]"
+    exit 1
+fi
+
+repo=$1
+runtime=$2
+app=$3
+shift 3
+
+tmp_home=`mktemp -d`
+cleanup() {
+    rm -rf tmp_home
+}
+trap cleanup EXIT
+
+export XDG_DATA_HOME=$tmp_home/.local
+export XDG_CACHE_HOME=$tmp_home/.cache
+export XDG_CONFIG_HOME=$tmp_home/.config
+
+flatpak remote-add --user --no-gpg-verify temp $(realpath $repo)
+flatpak install --user temp $runtime
+flatpak install --user temp $app
+
+flatpak run $app  "$@"

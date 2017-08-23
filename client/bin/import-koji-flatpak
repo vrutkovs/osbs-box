@@ -1,0 +1,67 @@
+#!/usr/bin/python3
+
+import argparse
+import koji
+import os
+import pycurl
+import shutil
+import subprocess
+import tarfile
+from tempfile import TemporaryDirectory
+
+class Downloader(object):
+    def __init__(self, repo, name, stream, config, kojifiles):
+        self.repo = repo
+        self.name = name
+        self.stream = stream
+        self.config = config
+        self.kojifiles = kojifiles
+        options = koji.read_config('koji', user_config=self.config)
+        self.session = koji.ClientSession(options['server'], options)
+
+    def run(self):
+        builds = [b for b in self.session.untaggedBuilds(self.name) if b['version'] == self.stream]
+        builds.sort(key=lambda build: [int(n) for n in build['release'].split('.')])
+        build = builds[-1]
+
+        buildinfo = self.session.getBuild(build['id'])
+        archive = self.session.listArchives(build['id'])[0]
+
+        pathinfo = koji.PathInfo(topdir=self.kojifiles)
+        path = '/'.join([pathinfo.typedir(build, archive['btype']), archive['filename']])
+
+        with TemporaryDirectory(suffix=None, prefix='flatpak-') as tempdir:
+            if self.kojifiles:
+                dest = os.path.join(tempdir, archive['filename'])
+                print("Downloading", dest, end=' ... ')
+                c = pycurl.Curl()
+                c.setopt(c.URL, path)
+                c.setopt(c.WRITEDATA, open(dest, 'wb'))
+                c.perform()
+                c.close()
+                print("done")
+            else:
+                dest = path
+
+            imagedir = os.path.join(tempdir, 'image')
+            with tarfile.open(dest) as tf:
+                tf.extractall(imagedir)
+            subprocess.check_call(['flatpak', 'build-import-bundle', '--oci',
+                                   self.repo, imagedir])
+
+parser = argparse.ArgumentParser(description='Download and install an OCI from koji.')
+parser.add_argument('repo', metavar='REPO',
+                    help='OSTree repositort to import into')
+parser.add_argument('name', metavar='NAME',
+                    help='Name of the built OCI')
+parser.add_argument('stream', metavar='STREAM',
+                    help='Stream of the built OCI')
+parser.add_argument('--config', '-c',
+                    help='Config file for local koji')
+parser.add_argument('--kojifiles',
+                    help='URL to download artifacts from')
+
+args = parser.parse_args()
+downloader = Downloader(repo=args.repo, name=args.name, stream=args.stream,
+                        config=args.config, kojifiles=args.kojifiles)
+downloader.run()

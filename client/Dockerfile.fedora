@@ -4,6 +4,8 @@ RUN dnf -y --refresh install \
       origin-clients \
       iproute \
       koji \
+      flatpak \
+      ostree \
       python3-modulemd \
       python3-setuptools \
       python3-dockerfile-parse \
