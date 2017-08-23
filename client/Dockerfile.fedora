@@ -3,13 +3,22 @@ FROM osbs-box:fedora
 RUN dnf -y --refresh install \
       origin-clients \
       iproute \
-      koji-containerbuild-cli \
+      koji \
+      python3-modulemd \
+      python3-setuptools \
+      python3-dockerfile-parse \
+      python3-requests \
+      python3-requests-kerberos \
+      python3-six \
     && dnf clean all
 
 ADD bin/ /usr/local/bin/
 ADD configs/ /configs
 
 RUN chmod +x /usr/local/bin/*
+
+RUN git clone -b flatpak-support https://github.com/owtaylor/osbs-client.git /tmp/osbs-client
+RUN cd /tmp/osbs-client && python3 setup.py install && install -D -t /usr/share/osbs inputs/*.json
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["sleep", "infinity"]
