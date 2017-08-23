@@ -91,6 +91,15 @@ oc secrets new-dockercfg v2-registry-dockercfg --docker-server=${WORKSTATION_IP}
 token=$(oc whoami -t)
 
 cp /configs/reactor-config-secret.yml /tmp/config.yaml
+cat >> /tmp/config.yaml <<EOF
+osbs_box:
+  hosts:
+    ${WORKSTATION_IP}:
+    - koji-hub
+    - odcs
+    - pdc
+EOF
+
 cp /configs/client-config-secret.conf /tmp/osbs.conf
 sed -i "s/OSBS_TOKEN/${token}/" /tmp/osbs.conf
 sed -i "s/WORKSTATION_IP/${WORKSTATION_IP}/" /tmp/osbs.conf
