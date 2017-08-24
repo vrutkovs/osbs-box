@@ -3,9 +3,9 @@ FROM osbs-box:fedora
 EXPOSE 80 443
 
 RUN dnf -y --refresh install \
+        git \
         hostname \
         httpd \
-        koji-containerbuild-hub \
         koji-hub \
         koji-hub-plugins \
         koji-utils \
@@ -21,6 +21,11 @@ COPY bin/ /usr/local/bin/
 RUN chmod +x /usr/local/bin/* && \
     mkdir -p /mnt/koji/{packages,repos,work,scratch} && \
     chown apache.apache /mnt/koji/*
+
+RUN git clone -b flatpak-support https://github.com/owtaylor/koji-containerbuild.git /tmp/koji-containerbuild && \
+    cd /tmp/koji-containerbuild && \
+    install -p -m 0644 koji_containerbuild/plugins/hub_containerbuild.py  /usr/lib/koji-hub-plugins/
+
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["httpd", "-D", "FOREGROUND"]

@@ -200,7 +200,7 @@ class Builder(object):
             build_id = taggedBuild['id']
 
         rpms = self.local_koji.listRPMs(buildID=build_id, arches=['x86_64', 'noarch', 'src'])
-        srpm = [r for r in rpms if r['arch'] == 'src'[0]
+        srpm = [r for r in rpms if r['arch'] == 'src'][0]
         for rpm in rpms:
             self.subpackages.add(rpm['name'])
             self.add_artifact(rpm, srpm)

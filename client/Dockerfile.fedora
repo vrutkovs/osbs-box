@@ -6,6 +6,8 @@ RUN dnf -y --refresh install \
       koji \
       flatpak \
       ostree \
+      git \
+      python2-setuptools \
       python3-modulemd \
       python3-setuptools \
       python3-dockerfile-parse \
@@ -19,8 +21,16 @@ ADD configs/ /configs
 
 RUN chmod +x /usr/local/bin/*
 
-RUN git clone -b flatpak-support https://github.com/owtaylor/osbs-client.git /tmp/osbs-client
-RUN cd /tmp/osbs-client && python3 setup.py install && install -D -t /usr/share/osbs inputs/*.json
+RUN git clone -b flatpak-support https://github.com/owtaylor/osbs-client.git /tmp/osbs-client && \
+    cd /tmp/osbs-client && \
+    python2 setup.py install && \
+    python3 setup.py install && \
+    install -D -t /usr/share/osbs inputs/*.json
+
+RUN git clone -b flatpak-support https://github.com/owtaylor/koji-containerbuild.git /tmp/koji-containerbuild && \
+    cd /tmp/koji-containerbuild && \
+    pip install --no-deps . && \
+    install -p -m 0755 cli/koji-containerbuild /usr/bin/koji-containerbuild
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["sleep", "infinity"]

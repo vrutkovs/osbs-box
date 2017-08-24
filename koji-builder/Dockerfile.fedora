@@ -1,9 +1,9 @@
 FROM osbs-box:fedora
 
 RUN dnf -y --refresh install \
+        git \
         mock \
         koji-builder \
-        koji-containerbuild-builder \
         osbs-client \
         python-osbs-client \
         python-pip \
@@ -13,6 +13,10 @@ RUN dnf -y --refresh install \
 ADD etc/ /etc/
 ADD bin/ /usr/local/bin/
 RUN chmod +x /usr/local/bin/*
+
+RUN git clone -b flatpak-support https://github.com/owtaylor/koji-containerbuild.git /tmp/koji-containerbuild && \
+    cd /tmp/koji-containerbuild && \
+    install -D -p -m 0644 koji_containerbuild/plugins/builder_containerbuild.py /usr/lib/koji-builder-plugins/
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["/usr/sbin/init"]
