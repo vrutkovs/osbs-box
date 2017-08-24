@@ -1,6 +1,6 @@
 #!/bin/bash
 
-until psql -h koji-db -U osbs --list | grep pdc > /dev/null 2>&1 ; do
+until psql -h koji-db -U koji --list | grep pdc > /dev/null 2>&1 ; do
     echo 1>&2 "Waiting for database to become available"
     sleep 1
 done

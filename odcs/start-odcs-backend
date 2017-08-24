@@ -9,7 +9,7 @@ ln -f -s /opt/koji-clients/kojiadmin/config $HOME/.koji/config
 export ODCS_CONFIG_FILE=/etc/odcs/config_docker.py
 export ODCS_CONFIG_SECTION=DockerConfiguration
 
-until psql -h koji-db -U osbs --list | grep odcs > /dev/null 2>&1 ; do
+until psql -h koji-db -U koji --list | grep odcs > /dev/null 2>&1 ; do
     echo 1>&2 "Waiting for database to become available"
     sleep 1
 done
