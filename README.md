@@ -53,15 +53,18 @@ $ docker-compose exec koji-client bash
 
 # create-module-data.sh
 [ output ]
-# osbs build -u john.doe --flatpak -g git://github.com/owtaylor/minimal-runtime -b master -m minimal-runtime:f26
+
+# koji add-pkg dest minimal-runtime banner --owner kojiadmin
+
+# koji-containerbuild flatpak-build candidate git://github.com/owtaylor/minimal-runtime#origin/master --git-branch=master --module=minimal-runtime:f26
 [ output ]
-# osbs build -u john.doe --flatpak -g git://github.com/owtaylor/banner -b master -m banner:f26
+# koji-containerbuild flatpak-build candidate git://github.com/owtaylor/banner#origin/master --git-branch=master --module=banner:f26
 [ output ]
 
 # ostree init --mode=archive-z2 --repo=localrepo
-# import-koji-flatpak localrepo minimal-runtime f26
+# import-koji-flatpak localrepo --tag=dest minimal-runtime f26
 Importing runtime/org.fedoraproject.MinimalPlatform/x86_64/26 (39bc9e25de6243d4a8f00923687db7291627e3267ad562b3d74177a99d08b69e)
-# import-koji-flatpak localrepo banner f26
+# import-koji-flatpak localrepo --tag=dest banner f26
 Importing app/com.cedar_solutions.Banner/x86_64/master (1f30fb859c09b77a879f6f4597b300a52d041de9c891470b88eee888d49beec4)
 # flatpak-test-run localrepo org.fedoraproject.MinimalPlatform com.cedar_solutions.Banner "Hello!"
 Installing: org.fedoraproject.MinimalPlatform/x86_64/26 from temp
