@@ -6,6 +6,7 @@ RUN dnf -y --refresh install \
         git \
         hostname \
         httpd \
+        iproute \
         koji-hub \
         koji-hub-plugins \
         koji-utils \
