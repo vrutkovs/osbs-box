@@ -10,17 +10,22 @@ import tarfile
 from tempfile import TemporaryDirectory
 
 class Downloader(object):
-    def __init__(self, repo, name, stream, config, kojifiles):
+    def __init__(self, repo, name, stream, tag, config, kojifiles):
         self.repo = repo
         self.name = name
         self.stream = stream
+        self.tag = tag
         self.config = config
         self.kojifiles = kojifiles
         options = koji.read_config('koji', user_config=self.config)
         self.session = koji.ClientSession(options['server'], options)
 
     def run(self):
-        builds = [b for b in self.session.untaggedBuilds(self.name) if b['version'] == self.stream]
+        if self.tag:
+            all_builds = self.session.listTagged(self.tag, package=self.name)
+        else:
+            all_builds = self.session.untaggedBuilds(self.name)
+        builds = [b for b in all_builds if b['version'] == self.stream]
         builds.sort(key=lambda build: [int(n) for n in build['release'].split('.')])
         build = builds[-1]
 
@@ -58,10 +63,12 @@ parser.add_argument('stream', metavar='STREAM',
                     help='Stream of the built OCI')
 parser.add_argument('--config', '-c',
                     help='Config file for local koji')
+parser.add_argument('--tag', '-t',
+                    help='Tag of the build (if unspecified, only untagged builds are searched)')
 parser.add_argument('--kojifiles',
                     help='URL to download artifacts from')
 
 args = parser.parse_args()
 downloader = Downloader(repo=args.repo, name=args.name, stream=args.stream,
-                        config=args.config, kojifiles=args.kojifiles)
+                        tag=args.tag, config=args.config, kojifiles=args.kojifiles)
 downloader.run()
