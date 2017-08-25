@@ -34,10 +34,19 @@ oc login --insecure-skip-tls-verify=true -u osbs -p osbs https://${WORKSTATION_I
 oc new-project osbs
 oc adm policy add-role-to-user edit -z builder
 
+cat >> /tmp/osbs-box.yaml <<EOF
+hosts:
+  ${WORKSTATION_IP}:
+  - koji-hub
+  - odcs
+  - pdc
+EOF
+
 oc secret new kojisecret \
     serverca=/opt/koji-clients/kojiadmin/serverca.crt \
     ca=/opt/koji-clients/kojiadmin/clientca.crt \
-    cert=/opt/koji-clients/kojiadmin/client.crt
+    cert=/opt/koji-clients/kojiadmin/client.crt \
+    /tmp/osbs-box.yaml
 
 oc secrets add serviceaccount/builder secrets/kojisecret --for=mount
 
@@ -66,7 +75,8 @@ oc adm policy add-role-to-user edit system:serviceaccount:osbs:builder
 oc secret new kojisecret \
     serverca=/opt/koji-clients/kojiadmin/serverca.crt \
     ca=/opt/koji-clients/kojiadmin/clientca.crt \
-    cert=/opt/koji-clients/kojiadmin/client.crt
+    cert=/opt/koji-clients/kojiadmin/client.crt \
+    /tmp/osbs-box.yaml
 
 oc secrets add serviceaccount/builder secrets/kojisecret --for=mount
 
@@ -91,14 +101,6 @@ oc secrets new-dockercfg v2-registry-dockercfg --docker-server=${WORKSTATION_IP}
 token=$(oc whoami -t)
 
 cp /configs/reactor-config-secret.yml /tmp/config.yaml
-cat >> /tmp/config.yaml <<EOF
-osbs_box:
-  hosts:
-    ${WORKSTATION_IP}:
-    - koji-hub
-    - odcs
-    - pdc
-EOF
 
 cp /configs/client-config-secret.conf /tmp/osbs.conf
 sed -i "s/OSBS_TOKEN/${token}/" /tmp/osbs.conf
