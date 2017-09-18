@@ -63,7 +63,7 @@ DEBUG = True
 #       https://docs.djangoproject.com/en/1.8/ref/settings/#allowed-hosts
 # E.g.
 #     ALLOWED_HOSTS = ['pdc.example.com']
-ALLOWED_HOSTS = ['pdc']
+ALLOWED_HOSTS = ['*']
 
 AUTHENTICATION_BACKENDS = (
 #    'django.contrib.auth.backends.RemoteUserBackend',
