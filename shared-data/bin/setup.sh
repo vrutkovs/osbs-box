@@ -45,7 +45,7 @@ mkdir -p /root/.koji
 ln -s /opt/local/koji-clients/kojiadmin/config /root/.koji/config
 
 # Generate certificates and set password for registry
-cat /opt/local/pki/koji/ssl.cnf | sed "s/email\:move/IP:${WORKSTATION_IP},email:move/"> ssl.cnf
+cat /opt/local/pki/koji/ssl.cnf | sed "s/email\:move/IP:${WORKSTATION_IP},IP.2:172.23.0.1,email:move/"> ssl.cnf
 mkdir /opt/local/certs
 openssl req -config ssl.cnf \
     -subj "/C=US/ST=Drunken/L=Bed/O=IT/CN=${WORKSTATION_IP}" \
