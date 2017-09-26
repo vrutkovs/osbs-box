@@ -70,7 +70,7 @@ if ! tag_exists bootstrap ; then
     info "Creating bootstrap tag"
 
     koji add-tag bootstrap
-    koji add-external-repo -t bootstrap bootstrap-external-repo https://kojipkgs.fedoraproject.org/repos/f26-build/latest/\$arch/
+    koji add-external-repo -t bootstrap bootstrap-external-repo https://kojipkgs.fedoraproject.org/repos/f27-build/latest/\$arch/
 
     koji add-group bootstrap build
     koji add-group-pkg bootstrap build $BUILD_GROUP
@@ -79,18 +79,18 @@ if ! tag_exists bootstrap ; then
     koji add-group-pkg bootstrap srpm-build $SRPM_BUILD_GROUP
 fi
 
-if ! tag_exists minimal-runtime ; then
-    make_module_tag minimal-runtime
+if ! tag_exists gnome-runtime-f27 ; then
+    make_module_tag gnome-runtime-f27
 fi
 
 token=$(pdc_token)
 
-fake-module-build -w $WORKDIR  -g https://github.com/owtaylor/minimal-runtime -b master minimal-runtime
-post_module_to_pdc minimal-runtime $token
+fake-module-build -w $WORKDIR  -g https://github.com/vrutkovs/gnome-runtime-f27 -b master gnome-runtime-f27
+post_module_to_pdc gnome-runtime-f27 $token
 
-if ! tag_exists banner ; then
-    make_module_tag banner minimal-runtime
+if ! tag_exists module-eog-f27 ; then
+    make_module_tag module-eog-f27 gnome-runtime-f27
 fi
 
-fake-module-build -w $WORKDIR  -g https://github.com/owtaylor/banner -b master banner
-post_module_to_pdc banner $token
+fake-module-build -w $WORKDIR  -g https://github.com/vrutkovs/module-eog-f27 -b master module-eog-f27
+post_module_to_pdc module-eog-f27 $token

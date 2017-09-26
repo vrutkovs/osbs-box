@@ -157,7 +157,7 @@ class Builder(object):
     def import_rpms(self, package_name):
         print("Fetching information for {} ... ".format(package_name), end='')
         sys.stdout.flush()
-        builds = self.remote_koji.listTagged('f26-build', latest=True, package=package_name, inherit=True)
+        builds = self.remote_koji.listTagged('f27-build', latest=True, package=package_name, inherit=True)
         info = builds[0]
         rpms = self.remote_koji.listRPMs(buildID=info['id'], arches=['x86_64', 'noarch', 'src'])
         print("done")
@@ -220,7 +220,7 @@ class Builder(object):
             pass
 
         mmd.name = self.name
-        mmd.stream = 'f26'
+        mmd.stream = 'f27'
         mmd.version = self.module_version
 
         if 'runtime' in mmd.profiles:
@@ -288,4 +288,3 @@ parser.add_argument('--workdir', '-w', required=True,
 args = parser.parse_args()
 builder = Builder(tag=args.tag, config=args.config, git_url=args.git, git_branch=args.branch, workdir=args.workdir)
 builder.run()
-
