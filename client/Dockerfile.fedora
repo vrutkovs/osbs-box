@@ -28,6 +28,7 @@ RUN git clone -b develop2 https://github.com/vrutkovs/osbs-client.git /tmp/osbs-
 
 RUN git clone -b master https://github.com/release-engineering/koji-containerbuild.git /tmp/koji-containerbuild && \
     cd /tmp/koji-containerbuild && \
+    mkdir -p /usr/lib/koji-builder-plugins/ && \
     install -D -p -m 0644 koji_containerbuild/plugins/builder_containerbuild.py /usr/lib/koji-builder-plugins/
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
