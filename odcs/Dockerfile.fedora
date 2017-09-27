@@ -55,6 +55,7 @@ RUN dnf -y --refresh install \
         python2-requests \
         python2-jinja2 \
         python2-psycopg2 \
+        python2-defusedxml \
   && dnf clean all
 
 # Not packaged for python2
