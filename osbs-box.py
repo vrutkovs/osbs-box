@@ -101,8 +101,7 @@ def up(args):
 
     # Start a cluster
     cmd = ['oc', 'cluster', 'up',
-           '--version', 'v3.7.0',
-           '--image', 'openshift/origin']
+           '--version', 'v3.7.0']
     output = _run(cmd)
     match = re.search(r'https://(\d*.\d*.\d*.\d*):8443', output)
     if not match:

@@ -24,7 +24,7 @@ oc login --insecure-skip-tls-verify=true -u osbs -p osbs https://${WORKSTATION_I
 #   oc -n osbs adm policy add-cluster-role-to-user cluster-admin osbs
 
 oc new-project osbs
-oc adm policy add-role-to-user edit -z builder
+#oc adm policy add-role-to-user edit -z builder
 
 oc secret new kojisecret \
     serverca=/opt/koji-clients/kojiadmin/serverca.crt \
@@ -33,7 +33,7 @@ oc secret new kojisecret \
 
 oc secrets add serviceaccount/builder secrets/kojisecret --for=mount
 
-oc create policybinding osbs
+#oc create policybinding osbs
 
 oc create -f - << EOF
 apiVersion: v1
@@ -43,16 +43,17 @@ metadata:
 rules:
 - verbs:
   - create
+  - edit
   resources:
   - builds/custom
 EOF
 
-oc adm policy add-role-to-user osbs-custom-build osbs -z builder --role-namespace osbs
+#oc adm policy add-role-to-user osbs-custom-build -z builder --role-namespace osbs
 
 oc secrets new-dockercfg v2-registry-dockercfg --docker-server=172.17.0.1:5000 --docker-username=osbs --docker-password=craycray --docker-email=test@test.com
 
 oc new-project worker
-oc adm policy add-role-to-user edit -z builder
+#oc adm policy add-role-to-user edit -z builder
 
 oc secret new kojisecret \
     serverca=/opt/koji-clients/kojiadmin/serverca.crt \
@@ -61,7 +62,7 @@ oc secret new kojisecret \
 
 oc secrets add serviceaccount/builder secrets/kojisecret --for=mount
 
-oc create policybinding worker
+#oc create policybinding worker
 
 oc create -f - << EOF
 apiVersion: v1
@@ -75,7 +76,7 @@ rules:
   - builds/custom
 EOF
 
-oc adm policy add-role-to-user osbs-custom-build osbs -z builder --role-namespace worker
+#oc adm policy add-role-to-user osbs-custom-build osbs -z builder --role-namespace worker
 
 oc secrets new-dockercfg v2-registry-dockercfg --docker-server=172.17.0.1:5000 --docker-username=osbs --docker-password=craycray --docker-email=test@test.com
 
