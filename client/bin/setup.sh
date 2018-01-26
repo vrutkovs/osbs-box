@@ -8,6 +8,8 @@ koji add-target candidate build dest
 
 koji add-pkg dest osbs-buildroot-docker --owner kojiadmin
 koji add-pkg dest docker-hello-world --owner kojiadmin
+koji add-pkg dest cowsay --owner kojiadmin
+koji add-pkg dest cowthink --owner kojiadmin
 
 # Enable content generator access
 koji grant_cg_access kojiosbs atomic-reactor
